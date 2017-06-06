@@ -227,22 +227,55 @@
     }
   };
 
+  var checkVisibilityId = -1;
+  var checkVisibilityQueue = [];
+  var checkVisibility = function(media) {
+    if (media.clientHeight === 0 || media.clientWidth === 0) {
+      checkVisibilityQueue.push(media);
+      return launchCheckVisibility();
+    }
+    objectFit(media);
+  }
+
+  var launchCheckVisibility = function() {
+    if (checkVisibilityId !== -1) {
+      return;
+    }
+
+    if (checkVisibilityQueue.length) {
+      checkVisibilityId = setTimeout(function() {
+        checkVisibilityId = -1;
+        var list = checkVisibilityQueue;
+        checkVisibilityQueue = [];
+        while (list.length) {
+          checkVisibility(list.shift());
+        }
+      }, 16);
+    }
+  }
+
   /**
    * Initialize plugin
    */
   var objectFitPolyfill = function() {
     var media = document.querySelectorAll("img");
 
+    if (checkVisibilityId !== -1) {
+      clearTimeout(checkVisibilityId);
+      checkVisibilityId = -1;
+      checkVisibilityQueue = [];
+    }
+
     for (var i = 0; i < media.length; i ++) {
       var mediaType = media[i].nodeName.toLowerCase();
 
       if (mediaType === "img") {
         if (media[i].complete) {
-          objectFit(media[i]);
+          checkVisibility(media[i]);
         }
         else {
           media[i].addEventListener("load", function() {
-            objectFit(this);
+            checkVisibility(this);
           });
         }
       }
